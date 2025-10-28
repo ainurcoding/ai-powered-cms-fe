@@ -1,0 +1,53 @@
+{
+  "name": "ai-cms-desktop",
+  "version": "1.0.0",
+  "description": "AI CMS Desktop Application",
+  "main": "main.js",
+  "scripts": {
+    "electron": "electron .",
+    "electron:dev": "NODE_ENV=development electron .",
+    "electron:pack": "electron-builder",
+    "electron:dist": "npm run build && electron-builder",
+    "electron:dist:win": "npm run build && electron-builder --win",
+    "electron:dist:mac": "npm run build && electron-builder --mac",
+    "electron:dist:linux": "npm run build && electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.aicms.desktop",
+    "productName": "AI CMS",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "public/",
+        "to": "public/"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "public/icon.png",
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

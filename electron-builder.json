@@ -1,0 +1,28 @@
+{
+  "appId": "com.aicms.desktop",
+  "productName": "AI CMS",
+  "directories": {
+    "output": "dist-electron"
+  },
+  "files": ["dist/**/*", "electron/**/*", "node_modules/**/*"],
+  "win": {
+    "target": "nsis",
+    "icon": "public/icon.ico"
+  },
+  "mac": {
+    "target": "dmg",
+    "icon": "public/icon.icns",
+    "category": "public.app-category.productivity"
+  },
+  "linux": {
+    "target": "AppImage",
+    "icon": "public/icon.png",
+    "category": "Office"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}
