@@ -34,8 +34,9 @@ export const useCreatePost = () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       toast.success('Post berhasil dibuat!');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Gagal membuat post');
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Gagal membuat post');
     },
   });
 };
@@ -44,20 +45,16 @@ export const useUpdatePost = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: Partial<CreatePostData>;
-    }) => postService.updatePost(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreatePostData> }) =>
+      postService.updatePost(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['post', variables.id] });
       toast.success('Post berhasil diupdate!');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Gagal update post');
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Gagal update post');
     },
   });
 };
@@ -71,8 +68,9 @@ export const useDeletePost = () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       toast.success('Post berhasil dihapus!');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Gagal menghapus post');
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Gagal menghapus post');
     },
   });
 };
@@ -87,9 +85,9 @@ export const usePublishPost = () => {
       queryClient.invalidateQueries({ queryKey: ['post', id] });
       toast.success('Post berhasil dipublish!');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Gagal publish post');
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Gagal publish post');
     },
   });
 };
-
