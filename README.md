@@ -121,6 +121,14 @@ Setiap commit akan otomatis:
 
 **Tidak ada commit yang bisa dilakukan jika ada linting errors!** 🚫
 
+## 🧪 Testing Pre-commit Hook
+
+Untuk test pre-commit hook, coba buat perubahan dan commit. Hook akan otomatis:
+
+1. Jalankan ESLint dengan auto-fix
+2. Format code dengan Prettier
+3. Cek TypeScript errors
+
 ## 🎯 Next Steps
 
 Boilerplate sudah siap! Anda bisa mulai mengembangkan fitur:
