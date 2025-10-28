@@ -37,11 +37,13 @@ src/
 ## 🛠️ Setup Development
 
 1. **Install dependencies**
+
 ```bash
 pnpm install
 ```
 
 2. **Setup environment variables**
+
 ```bash
 cp .env.example .env
 ```
@@ -49,6 +51,7 @@ cp .env.example .env
 Edit `.env` dan sesuaikan `VITE_API_BASE_URL` dengan URL backend Anda.
 
 3. **Jalankan development server**
+
 ```bash
 pnpm dev
 ```
@@ -61,12 +64,14 @@ Application akan berjalan di `http://localhost:5173`
 - `pnpm build` - Build untuk production
 - `pnpm preview` - Preview production build
 - `pnpm lint` - Lint code dengan ESLint
+- `pnpm lint:fix` - Fix linting errors automatically
 - `pnpm format` - Format code dengan Prettier
 - `pnpm test` - Run tests dengan Vitest
 
 ## 🔐 Authentication
 
 Project ini menggunakan JWT authentication dengan beberapa fitur:
+
 - Login dengan username/password
 - Google OAuth integration (siap digunakan)
 - Auto token refresh
@@ -75,6 +80,7 @@ Project ini menggunakan JWT authentication dengan beberapa fitur:
 ## 🎨 UI Components
 
 Project ini sudah dilengkapi dengan:
+
 - Button component dengan variants
 - Card components
 - Input components
@@ -84,6 +90,7 @@ Project ini sudah dilengkapi dengan:
 ## 📡 API Integration
 
 Semua API services sudah tersedia di folder `src/services/`:
+
 - `auth.service.ts` - Authentication
 - `post.service.ts` - Post management
 - `category.service.ts` - Category management
@@ -95,6 +102,24 @@ Semua API services sudah tersedia di folder `src/services/`:
 
 - **Zustand** untuk client state (auth, theme)
 - **React Query** untuk server state (caching, refetching)
+
+## 🛡️ Code Quality
+
+Project ini menggunakan pre-commit hooks untuk memastikan code quality:
+
+- **Husky** - Git hooks management
+- **Lint-staged** - Run linters on staged files
+- **ESLint** - Code linting dengan auto-fix
+- **Prettier** - Code formatting
+
+Setiap commit akan otomatis:
+
+1. ✅ Jalankan ESLint dengan auto-fix
+2. ✅ Format code dengan Prettier
+3. ✅ Cek TypeScript errors
+4. ✅ Validasi file yang di-stage
+
+**Tidak ada commit yang bisa dilakukan jika ada linting errors!** 🚫
 
 ## 🎯 Next Steps
 
@@ -111,6 +136,7 @@ Boilerplate sudah siap! Anda bisa mulai mengembangkan fitur:
 ## 🤝 Contributing
 
 Silakan develop fitur baru dengan:
+
 1. Buat branch baru
 2. Commit changes
 3. Push dan create PR
