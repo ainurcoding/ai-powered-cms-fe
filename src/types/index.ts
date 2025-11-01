@@ -133,3 +133,19 @@ export interface ApiError {
   status_code: number;
 }
 
+// Google OAuth Types
+export interface GoogleAuthUrlResponse {
+  success: boolean;
+  result: {
+    authUrl: string;
+  };
+}
+
+export interface GoogleOAuthCallbackResponse {
+  success: boolean;
+  result: {
+    token: string;
+    user: User;
+    isNewUser: boolean;
+  };
+}

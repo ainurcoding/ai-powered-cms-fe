@@ -5,6 +5,8 @@ import type {
   LoginCredentials,
   RegisterData,
   ApiResponse,
+  GoogleAuthUrlResponse,
+  GoogleOAuthCallbackResponse,
 } from '../types';
 
 export const authService = {
@@ -41,20 +43,42 @@ export const authService = {
     return response.data;
   },
 
-  async getGoogleAuthUrl(): Promise<{ auth_url: string }> {
+  /**
+   * Get Google OAuth authorization URL.
+   * Use this URL to redirect users to Google login page.
+   */
+  async getGoogleAuthUrl(): Promise<GoogleAuthUrlResponse> {
     const response = await api.get(API_ENDPOINTS.AUTH.GOOGLE_URL);
     return response.data;
   },
 
-  async handleGoogleCallback(code: string): Promise<{
-    access_token: string;
-    refresh_token: string;
-    token_type: string;
-  }> {
+  /**
+   * Handle Google OAuth callback.
+   * This endpoint is called by Google after user login.
+   * @param code - Authorization code from Google
+   * @param state - State parameter from Google (optional)
+   */
+  async handleGoogleCallback(
+    code: string,
+    state?: string
+  ): Promise<GoogleOAuthCallbackResponse> {
+    const params = new URLSearchParams({ code });
+    if (state) {
+      params.append('state', state);
+    }
+
     const response = await api.get(
-      `${API_ENDPOINTS.AUTH.GOOGLE_CALLBACK}?code=${code}`
+      `${API_ENDPOINTS.AUTH.GOOGLE_CALLBACK}?${params.toString()}`
     );
     return response.data;
   },
-};
 
+  /**
+   * Test Google OAuth configuration.
+   * Check if Client ID, Client Secret, and Callback URL are properly configured.
+   */
+  async testGoogleConfig(): Promise<ApiResponse<Record<string, unknown>>> {
+    const response = await api.get(API_ENDPOINTS.AUTH.GOOGLE_TEST_CONFIG);
+    return response.data;
+  },
+};

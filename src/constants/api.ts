@@ -1,4 +1,5 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export const API_ENDPOINTS = {
   // Auth
@@ -9,6 +10,7 @@ export const API_ENDPOINTS = {
     ME: '/auth/me',
     GOOGLE_URL: '/auth/google/url',
     GOOGLE_CALLBACK: '/auth/google/callback',
+    GOOGLE_TEST_CONFIG: '/auth/google/test-config',
     REFRESH: '/auth/refresh',
   },
   // Posts
@@ -53,4 +55,3 @@ export const API_ENDPOINTS = {
   // Health
   HEALTH: '/health',
 };
-
