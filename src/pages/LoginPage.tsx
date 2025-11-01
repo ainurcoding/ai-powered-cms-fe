@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import {
@@ -11,11 +12,36 @@ import {
   CardTitle,
 } from '../components/ui/Card';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
+import { GoogleLoginButton } from '../components/auth/GoogleLoginButton';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
   const { login, isLoginLoading } = useAuth();
+  const { handleCallback, isHandlingCallback } = useGoogleAuth();
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+    const error = searchParams.get('error');
+
+    if (error) {
+      // Handle OAuth error
+      console.error('Google OAuth error:', error);
+      // Remove error params from URL
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    if (code && !isHandlingCallback) {
+      // Handle Google OAuth callback
+      handleCallback(code, state || undefined);
+      // Remove code and state from URL to prevent re-triggering
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, handleCallback, setSearchParams, isHandlingCallback]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,11 +108,28 @@ export const LoginPage = () => {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isLoginLoading}
+                  disabled={isLoginLoading || isHandlingCallback}
                 >
                   {isLoginLoading ? 'Loading...' : 'Login'}
                 </Button>
               </form>
+
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background text-muted-foreground px-2">
+                    Atau lanjutkan dengan
+                  </span>
+                </div>
+              </div>
+
+              {/* Google Login Button */}
+              <GoogleLoginButton
+                disabled={isLoginLoading || isHandlingCallback}
+              />
 
               <div className="mt-4 text-center text-sm">
                 <span className="text-muted-foreground">

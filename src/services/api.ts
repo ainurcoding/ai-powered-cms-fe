@@ -1,13 +1,23 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { API_BASE_URL } from '../constants/api';
 
-// Create axios instance
+// Create axios instance with credentials (for authenticated requests)
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true,
+});
+
+// Create public axios instance without credentials (for public endpoints)
+// This is needed for endpoints that return Access-Control-Allow-Origin: *
+export const publicApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: false,
 });
 
 // Request interceptor

@@ -135,17 +135,21 @@ export interface ApiError {
 
 // Google OAuth Types
 export interface GoogleAuthUrlResponse {
-  success: boolean;
+  message?: string;
+  success?: boolean;
   result: {
     authUrl: string;
+    message?: string;
   };
 }
 
 export interface GoogleOAuthCallbackResponse {
-  success: boolean;
+  message?: string;
+  success?: boolean;
   result: {
     token: string;
     user: User;
     isNewUser: boolean;
+    message?: string;
   };
 }

@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, publicApi } from './api';
 import { API_ENDPOINTS } from '../constants/api';
 import type {
   User,
@@ -46,15 +46,18 @@ export const authService = {
   /**
    * Get Google OAuth authorization URL.
    * Use this URL to redirect users to Google login page.
+   * Uses publicApi because this endpoint doesn't require credentials
+   * and backend returns Access-Control-Allow-Origin: *
    */
   async getGoogleAuthUrl(): Promise<GoogleAuthUrlResponse> {
-    const response = await api.get(API_ENDPOINTS.AUTH.GOOGLE_URL);
+    const response = await publicApi.get(API_ENDPOINTS.AUTH.GOOGLE_URL);
     return response.data;
   },
 
   /**
    * Handle Google OAuth callback.
    * This endpoint is called by Google after user login.
+   * Uses publicApi because this is a public endpoint that exchanges code for token
    * @param code - Authorization code from Google
    * @param state - State parameter from Google (optional)
    */
@@ -67,7 +70,7 @@ export const authService = {
       params.append('state', state);
     }
 
-    const response = await api.get(
+    const response = await publicApi.get(
       `${API_ENDPOINTS.AUTH.GOOGLE_CALLBACK}?${params.toString()}`
     );
     return response.data;
@@ -76,9 +79,10 @@ export const authService = {
   /**
    * Test Google OAuth configuration.
    * Check if Client ID, Client Secret, and Callback URL are properly configured.
+   * Uses publicApi because this endpoint doesn't require credentials
    */
   async testGoogleConfig(): Promise<ApiResponse<Record<string, unknown>>> {
-    const response = await api.get(API_ENDPOINTS.AUTH.GOOGLE_TEST_CONFIG);
+    const response = await publicApi.get(API_ENDPOINTS.AUTH.GOOGLE_TEST_CONFIG);
     return response.data;
   },
 };
