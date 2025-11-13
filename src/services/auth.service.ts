@@ -56,7 +56,8 @@ export const authService = {
 
   /**
    * Handle Google OAuth callback.
-   * This endpoint is called by Google after user login.
+   * This endpoint is called by frontend to exchange code with token.
+   * Backend detects API call via Accept: application/json header.
    * Uses publicApi because this is a public endpoint that exchanges code for token
    * @param code - Authorization code from Google
    * @param state - State parameter from Google (optional)
@@ -71,7 +72,12 @@ export const authService = {
     }
 
     const response = await publicApi.get(
-      `${API_ENDPOINTS.AUTH.GOOGLE_CALLBACK}?${params.toString()}`
+      `${API_ENDPOINTS.AUTH.GOOGLE_CALLBACK}?${params.toString()}`,
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
     );
     return response.data;
   },

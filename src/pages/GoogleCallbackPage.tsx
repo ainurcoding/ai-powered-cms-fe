@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
@@ -15,14 +15,21 @@ export const GoogleCallbackPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { handleCallback, isHandlingCallback } = useGoogleAuth();
+  const hasProcessedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple calls
+    if (hasProcessedRef.current || isHandlingCallback) {
+      return;
+    }
+
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
 
     if (error) {
       // Handle OAuth error
+      hasProcessedRef.current = true;
       console.error('Google OAuth error:', error);
       toast.error('Google OAuth authentication failed. Please try again.');
       // Redirect to login after a short delay
@@ -32,22 +39,22 @@ export const GoogleCallbackPage = () => {
       return;
     }
 
-    if (code && !isHandlingCallback) {
+    if (code) {
+      // Mark as processed immediately to prevent duplicate calls
+      hasProcessedRef.current = true;
+
+      // Remove code and state from URL first to prevent re-triggering
+      setSearchParams({}, { replace: true });
+
       // Handle Google OAuth callback
       handleCallback(code, state || undefined);
-      // Remove code and state from URL to prevent re-triggering
-      setSearchParams({}, { replace: true });
-    } else if (!code && !isHandlingCallback) {
+    } else if (!code) {
       // No code found, redirect to login
+      hasProcessedRef.current = true;
       navigate('/login');
     }
-  }, [
-    searchParams,
-    handleCallback,
-    setSearchParams,
-    isHandlingCallback,
-    navigate,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Only depend on searchParams, use ref to prevent multiple calls
 
   return (
     <div className="bg-background min-h-screen">
