@@ -107,7 +107,7 @@ export const LoginPage = () => {
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full font-semibold"
                   disabled={isLoginLoading || isHandlingCallback}
                 >
                   {isLoginLoading ? 'Loading...' : 'Login'}
