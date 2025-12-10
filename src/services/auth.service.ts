@@ -11,16 +11,28 @@ import type {
 } from '../types';
 
 export const authService = {
-  async login(credentials: LoginCredentials): Promise<{
-    access_token: string;
-    refresh_token: string;
-    token_type: string;
-  }> {
+  /**
+   * Login with username and password.
+   * Uses publicApi because this endpoint returns Access-Control-Allow-Origin: *
+   * and doesn't require credentials (withCredentials: false)
+   * Response includes: { result: { token, user, ... } }
+   */
+  async login(credentials: LoginCredentials): Promise<
+    BackendResponse<{
+      token: string;
+      user: User;
+    }>
+  > {
     const formData = new URLSearchParams();
     formData.append('username', credentials.username);
     formData.append('password', credentials.password);
 
-    const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, formData, {
+    const response = await publicApi.post<
+      BackendResponse<{
+        token: string;
+        user: User;
+      }>
+    >(API_ENDPOINTS.AUTH.LOGIN, formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -39,9 +51,17 @@ export const authService = {
     localStorage.removeItem('refresh_token');
   },
 
+  /**
+   * Check token and get current user.
+   * Uses /auth/check-token endpoint which validates token and returns user data.
+   * Uses publicApi because this endpoint returns Access-Control-Allow-Origin: *
+   * Token is automatically added via publicApi interceptor from localStorage
+   */
   async getCurrentUser(): Promise<User> {
-    const response = await api.get(API_ENDPOINTS.AUTH.ME);
-    return response.data;
+    const response = await publicApi.get<BackendResponse<User>>(
+      API_ENDPOINTS.AUTH.CHECK_TOKEN
+    );
+    return response.data.result;
   },
 
   /**

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
 import { authService } from '../services/auth.service';
-import type { LoginCredentials, RegisterData } from '../types';
+import type { LoginCredentials, RegisterData, User } from '../types';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -31,11 +31,30 @@ export const useAuth = () => {
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: async (data) => {
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
+      // Extract token and user from response
+      const token = data.result.token;
+      const userFromResponse = data.result.user;
 
-      // Fetch user data
-      const userData = await authService.getCurrentUser();
+      // Store token
+      localStorage.setItem('access_token', token);
+      // If refresh_token is available, store it too
+      // localStorage.setItem('refresh_token', data.result.refresh_token);
+
+      // Map user data from response to User type
+      // Backend may return different field names (e.g., role vs is_superuser)
+      const userData: User = {
+        id: userFromResponse.id,
+        username: userFromResponse.username,
+        email: userFromResponse.email,
+        full_name: userFromResponse.full_name ?? null,
+        profile_image: userFromResponse.profile_image ?? null,
+        is_active: userFromResponse.is_active ?? true,
+        is_superuser: userFromResponse.is_superuser ?? false,
+        created_at: userFromResponse.created_at ?? new Date().toISOString(),
+        updated_at: userFromResponse.updated_at ?? new Date().toISOString(),
+      };
+
+      // Set user data directly from response (no need to call getCurrentUser)
       setUser(userData);
 
       toast.success('Login berhasil!');
