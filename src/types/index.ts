@@ -34,11 +34,22 @@ export interface Post {
   status: 'draft' | 'published';
   meta_title: string | null;
   meta_description: string | null;
+  meta_keywords: string | null;
+  author_id: string;
+  category_id: string | null;
+  view_count: number;
+  is_ai_generated: boolean;
+  ai_prompt: string | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
-  author: User;
-  categories: Category[];
+  author: {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string | null;
+  };
+  category: Category | null;
   tags: Tag[];
 }
 
@@ -60,8 +71,11 @@ export interface Category {
   name: string;
   slug: string;
   description: string | null;
+  parent_id: string | null;
   created_at: string;
   updated_at: string;
+  post_count?: string;
+  children?: Category[];
 }
 
 export interface CreateCategoryData {
@@ -120,12 +134,27 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+// Backend Response Wrapper
+export interface BackendResponse<T> {
+  message?: string;
+  result: T;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
   page: number;
   size: number;
   pages: number;
+}
+
+// Dashboard Statistics Types
+export interface DashboardStats {
+  totalPosts: number;
+  publishedPosts: number;
+  totalCategories: number;
+  totalTags: number;
+  recentPosts: Post[];
 }
 
 export interface ApiError {
