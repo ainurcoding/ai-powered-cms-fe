@@ -91,3 +91,20 @@ export const usePublishPost = () => {
     },
   });
 };
+
+export const useUnpublishPost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => postService.unpublishPost(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['post', id] });
+      toast.success('Post berhasil di-unpublish!');
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Gagal unpublish post');
+    },
+  });
+};

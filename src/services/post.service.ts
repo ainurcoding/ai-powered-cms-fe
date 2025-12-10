@@ -1,11 +1,6 @@
 import { api, publicApi } from './api';
 import { API_ENDPOINTS } from '../constants/api';
-import type {
-  Post,
-  CreatePostData,
-  PaginatedResponse,
-  BackendResponse,
-} from '../types';
+import type { Post, CreatePostData, BackendResponse } from '../types';
 
 export const postService = {
   async getPosts(params?: {
@@ -15,10 +10,11 @@ export const postService = {
     category_id?: string;
     tag_id?: string;
     search?: string;
-  }): Promise<PaginatedResponse<Post>> {
-    const response = await publicApi.get<
-      BackendResponse<PaginatedResponse<Post>>
-    >(API_ENDPOINTS.POSTS.LIST, { params });
+  }): Promise<Post[]> {
+    const response = await publicApi.get<BackendResponse<Post[]>>(
+      API_ENDPOINTS.POSTS.LIST,
+      { params }
+    );
     return response.data.result;
   },
 

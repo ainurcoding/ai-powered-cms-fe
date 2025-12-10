@@ -177,10 +177,10 @@ export const DashboardPage = () => {
             </CardHeader>
             <CardContent className="space-y-2">
               <Link
-                to="/posts/new"
+                to="/posts"
                 className="text-primary hover:text-primary/90 block text-sm font-medium transition-colors"
               >
-                • Create new post
+                • Manage posts
               </Link>
               <Link
                 to="/categories"

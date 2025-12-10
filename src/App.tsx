@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { GoogleCallbackPage } from './pages/GoogleCallbackPage';
+import { PostsPage } from './pages/PostsPage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/posts" element={<PostsPage />} />
           </Route>
 
           {/* 404 */}
