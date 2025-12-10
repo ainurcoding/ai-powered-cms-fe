@@ -7,6 +7,7 @@ import type {
   ApiResponse,
   GoogleAuthUrlResponse,
   GoogleOAuthCallbackResponse,
+  BackendResponse,
 } from '../types';
 
 export const authService = {
@@ -71,15 +72,19 @@ export const authService = {
       params.append('state', state);
     }
 
-    const response = await publicApi.get(
-      `${API_ENDPOINTS.AUTH.GOOGLE_CALLBACK}?${params.toString()}`,
-      {
-        headers: {
-          Accept: 'application/json',
-        },
-      }
-    );
-    return response.data;
+    const response = await publicApi.get<
+      BackendResponse<GoogleOAuthCallbackResponse['result']>
+    >(`${API_ENDPOINTS.AUTH.GOOGLE_CALLBACK}?${params.toString()}`, {
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+    // Backend returns { message, result: { token, user, isNewUser, message } }
+    // Extract result and return in expected format
+    return {
+      message: response.data.message,
+      result: response.data.result,
+    };
   },
 
   /**

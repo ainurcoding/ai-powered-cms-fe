@@ -12,8 +12,7 @@ import {
 import {
   usePosts,
   useDeletePost,
-  usePublishPost,
-  useUnpublishPost,
+  useUpdatePostStatus,
 } from '../hooks/usePosts';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -43,8 +42,7 @@ export const PostsPage = () => {
 
   const { data: posts, isLoading, error } = usePosts();
   const deletePost = useDeletePost();
-  const publishPost = usePublishPost();
-  const unpublishPost = useUnpublishPost();
+  const updatePostStatus = useUpdatePostStatus();
 
   // Filter posts
   const filteredPosts = posts?.filter((post) => {
@@ -71,7 +69,7 @@ export const PostsPage = () => {
 
   const handlePublish = async (id: string) => {
     try {
-      await publishPost.mutateAsync(id);
+      await updatePostStatus.mutateAsync({ id, status: 'published' });
     } catch {
       // Error already handled by hook
     }
@@ -79,7 +77,7 @@ export const PostsPage = () => {
 
   const handleUnpublish = async (id: string) => {
     try {
-      await unpublishPost.mutateAsync(id);
+      await updatePostStatus.mutateAsync({ id, status: 'draft' });
     } catch {
       // Error already handled by hook
     }
@@ -225,12 +223,12 @@ export const PostsPage = () => {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-2">
-                            {post.status === 'draft' ? (
+                            {post.status !== 'published' ? (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handlePublish(post.id)}
-                                disabled={publishPost.isPending}
+                                disabled={updatePostStatus.isPending}
                               >
                                 Publish
                               </Button>
@@ -239,7 +237,7 @@ export const PostsPage = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleUnpublish(post.id)}
-                                disabled={unpublishPost.isPending}
+                                disabled={updatePostStatus.isPending}
                               >
                                 Unpublish
                               </Button>

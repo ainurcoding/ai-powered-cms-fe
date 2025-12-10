@@ -20,8 +20,7 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/posts/${id}`,
     UPDATE: (id: string) => `/posts/${id}`,
     DELETE: (id: string) => `/posts/${id}`,
-    PUBLISH: (id: string) => `/posts/${id}/publish`,
-    UNPUBLISH: (id: string) => `/posts/${id}/unpublish`,
+    STATUS: (id: string) => `/posts/${id}/status`,
   },
   // Categories
   CATEGORIES: {

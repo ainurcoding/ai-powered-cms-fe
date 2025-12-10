@@ -45,16 +45,20 @@ export const postService = {
     await api.delete(API_ENDPOINTS.POSTS.DELETE(id));
   },
 
-  async publishPost(id: string): Promise<Post> {
-    const response = await api.post<BackendResponse<Post>>(
-      API_ENDPOINTS.POSTS.PUBLISH(id)
-    );
-    return response.data.result;
-  },
-
-  async unpublishPost(id: string): Promise<Post> {
-    const response = await api.post<BackendResponse<Post>>(
-      API_ENDPOINTS.POSTS.UNPUBLISH(id)
+  /**
+   * Update post status (published, draft, or archived).
+   * Requires authentication token (Bearer token from localStorage).
+   * Token is automatically added by api interceptor.
+   */
+  async updatePostStatus(
+    id: string,
+    status: 'published' | 'draft' | 'archived'
+  ): Promise<Post> {
+    // Uses 'api' instance which has token interceptor
+    // Token is automatically added from localStorage.getItem('access_token')
+    const response = await api.put<BackendResponse<Post>>(
+      API_ENDPOINTS.POSTS.STATUS(id),
+      { status }
     );
     return response.data.result;
   },

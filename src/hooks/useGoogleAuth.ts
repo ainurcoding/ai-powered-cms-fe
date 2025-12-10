@@ -53,7 +53,9 @@ export const useGoogleAuth = () => {
       authService.handleGoogleCallback(code, state),
     onSuccess: async (data) => {
       if (data.result?.token) {
-        // Store token
+        // Store token to localStorage for Bearer token authentication
+        // This token will be automatically added to all authenticated API requests
+        // via the api interceptor in src/services/api.ts
         localStorage.setItem('access_token', data.result.token);
         // If refresh token is available, store it too
         // localStorage.setItem('refresh_token', data.result.refreshToken);

@@ -75,36 +75,32 @@ export const useDeletePost = () => {
   });
 };
 
-export const usePublishPost = () => {
+export const useUpdatePostStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => postService.publishPost(id),
-    onSuccess: (_, id) => {
+    mutationFn: ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: 'published' | 'draft' | 'archived';
+    }) => postService.updatePostStatus(id, status),
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
-      queryClient.invalidateQueries({ queryKey: ['post', id] });
-      toast.success('Post berhasil dipublish!');
+      queryClient.invalidateQueries({ queryKey: ['post', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      const statusMessage =
+        variables.status === 'published'
+          ? 'Post berhasil dipublish!'
+          : variables.status === 'draft'
+            ? 'Post berhasil diubah ke draft!'
+            : 'Post berhasil di-archive!';
+      toast.success(statusMessage);
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || 'Gagal publish post');
-    },
-  });
-};
-
-export const useUnpublishPost = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => postService.unpublishPost(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-      queryClient.invalidateQueries({ queryKey: ['post', id] });
-      toast.success('Post berhasil di-unpublish!');
-    },
-    onError: (error: unknown) => {
-      const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || 'Gagal unpublish post');
+      toast.error(err.response?.data?.detail || 'Gagal mengubah status post');
     },
   });
 };
