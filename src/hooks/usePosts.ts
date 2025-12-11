@@ -10,6 +10,7 @@ export const usePosts = (params?: {
   category_id?: string;
   tag_id?: string;
   search?: string;
+  author?: string;
 }) => {
   return useQuery({
     queryKey: ['posts', params],

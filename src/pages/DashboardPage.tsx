@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Layout } from '../components/layout/Layout';
 import {
   Card,
@@ -7,12 +8,27 @@ import {
   CardTitle,
 } from '../components/ui/Card';
 import { useDashboardStats } from '../hooks/useDashboardStats';
+import { useAuth } from '../hooks/useAuth';
+import { Checkbox } from '../components/ui/Checkbox';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 
 export const DashboardPage = () => {
-  const { data: stats, isLoading, error } = useDashboardStats();
+  const { user } = useAuth();
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
+
+  // Determine if user is admin/editor (role === 'ADMIN' || role === 'EDITOR')
+  const isAdminOrEditor =
+    user?.role === 'ADMIN' || user?.role === 'EDITOR' || false;
+
+  // Determine authorId to filter by:
+  // - If user is regular USER (not admin/editor), always filter by their ID
+  // - If user is admin/editor and checkbox is checked, filter by their ID
+  // - If user is admin/editor and checkbox is unchecked, show all (no filter)
+  const authorId = !isAdminOrEditor || showOnlyMine ? user?.id : undefined;
+
+  const { data: stats, isLoading, error } = useDashboardStats(authorId);
 
   if (isLoading) {
     return (
@@ -63,11 +79,29 @@ export const DashboardPage = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Selamat datang di AI CMS Dashboard
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Selamat datang di AI CMS Dashboard
+            </p>
+          </div>
+          {/* Show checkbox only for admin/editor */}
+          {isAdminOrEditor && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="show-only-mine"
+                checked={showOnlyMine}
+                onChange={(e) => setShowOnlyMine(e.target.checked)}
+              />
+              <label
+                htmlFor="show-only-mine"
+                className="cursor-pointer text-sm font-medium"
+              >
+                Hanya Saya
+              </label>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

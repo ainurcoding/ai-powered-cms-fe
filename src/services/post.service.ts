@@ -10,6 +10,7 @@ export const postService = {
     category_id?: string;
     tag_id?: string;
     search?: string;
+    author?: string;
   }): Promise<Post[]> {
     const response = await publicApi.get<BackendResponse<Post[]>>(
       API_ENDPOINTS.POSTS.LIST,

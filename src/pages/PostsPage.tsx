@@ -14,6 +14,8 @@ import {
   useDeletePost,
   useUpdatePostStatus,
 } from '../hooks/usePosts';
+import { useAuth } from '../hooks/useAuth';
+import { Checkbox } from '../components/ui/Checkbox';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import {
@@ -35,12 +37,30 @@ import {
 } from '../components/ui/Select';
 
 export const PostsPage = () => {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
-  const { data: posts, isLoading, error } = usePosts();
+  // Determine if user is admin/editor (role === 'ADMIN' || role === 'EDITOR')
+  const isAdminOrEditor =
+    user?.role === 'ADMIN' || user?.role === 'EDITOR' || false;
+
+  // Determine authorId to filter by:
+  // - If user is regular USER (not admin/editor), always filter by their ID
+  // - If user is admin/editor and checkbox is checked, filter by their ID
+  // - If user is admin/editor and checkbox is unchecked, show all (no filter)
+  const authorId = !isAdminOrEditor || showOnlyMine ? user?.id : undefined;
+
+  const {
+    data: posts,
+    isLoading,
+    error,
+  } = usePosts({
+    author: authorId,
+  });
   const deletePost = useDeletePost();
   const updatePostStatus = useUpdatePostStatus();
 
@@ -121,9 +141,27 @@ export const PostsPage = () => {
               Kelola semua posts Anda di sini
             </p>
           </div>
-          <Link to="/posts/new">
-            <Button>Create New Post</Button>
-          </Link>
+          <div className="flex items-center gap-4">
+            {/* Show checkbox only for admin/editor */}
+            {isAdminOrEditor && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="show-only-mine-posts"
+                  checked={showOnlyMine}
+                  onChange={(e) => setShowOnlyMine(e.target.checked)}
+                />
+                <label
+                  htmlFor="show-only-mine-posts"
+                  className="cursor-pointer text-sm font-medium"
+                >
+                  Hanya Saya
+                </label>
+              </div>
+            )}
+            <Link to="/posts/new">
+              <Button>Create New Post</Button>
+            </Link>
+          </div>
         </div>
 
         {/* Filters */}

@@ -41,7 +41,7 @@ export const useAuth = () => {
       // localStorage.setItem('refresh_token', data.result.refresh_token);
 
       // Map user data from response to User type
-      // Backend may return different field names (e.g., role vs is_superuser)
+      // Backend returns role field (ADMIN, EDITOR, USER)
       const userData: User = {
         id: userFromResponse.id,
         username: userFromResponse.username,
@@ -49,7 +49,7 @@ export const useAuth = () => {
         full_name: userFromResponse.full_name ?? null,
         profile_image: userFromResponse.profile_image ?? null,
         is_active: userFromResponse.is_active ?? true,
-        is_superuser: userFromResponse.is_superuser ?? false,
+        role: userFromResponse.role as 'ADMIN' | 'EDITOR' | 'USER' | undefined,
         created_at: userFromResponse.created_at ?? new Date().toISOString(),
         updated_at: userFromResponse.updated_at ?? new Date().toISOString(),
       };

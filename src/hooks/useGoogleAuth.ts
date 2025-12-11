@@ -18,7 +18,6 @@ interface GoogleOAuthUser {
   role?: string;
   isActive?: boolean;
   is_active?: boolean;
-  is_superuser?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -71,11 +70,7 @@ export const useGoogleAuth = () => {
             profile_image:
               googleUser.avatar || googleUser.profile_image || null,
             is_active: googleUser.isActive ?? googleUser.is_active ?? true,
-            is_superuser:
-              googleUser.role === 'ADMIN' ||
-              googleUser.role === 'SUPERUSER' ||
-              googleUser.is_superuser ||
-              false,
+            role: googleUser.role as 'ADMIN' | 'EDITOR' | 'USER' | undefined,
             created_at: googleUser.created_at || new Date().toISOString(),
             updated_at: googleUser.updated_at || new Date().toISOString(),
           };

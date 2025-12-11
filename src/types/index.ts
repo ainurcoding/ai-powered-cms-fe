@@ -6,7 +6,7 @@ export interface User {
   full_name: string | null;
   profile_image: string | null;
   is_active: boolean;
-  is_superuser: boolean;
+  role?: 'ADMIN' | 'EDITOR' | 'USER';
   created_at: string;
   updated_at: string;
 }
