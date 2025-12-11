@@ -9,11 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../components/ui/Card';
-import {
-  usePosts,
-  useDeletePost,
-  useUpdatePostStatus,
-} from '../hooks/usePosts';
+import { usePosts, useDeletePost, useUpdatePost } from '../hooks/usePosts';
 import { useAuth } from '../hooks/useAuth';
 import { Checkbox } from '../components/ui/Checkbox';
 import { format } from 'date-fns';
@@ -62,7 +58,7 @@ export const PostsPage = () => {
     author: authorId,
   });
   const deletePost = useDeletePost();
-  const updatePostStatus = useUpdatePostStatus();
+  const updatePost = useUpdatePost();
 
   // Filter posts
   const filteredPosts = posts?.filter((post) => {
@@ -89,7 +85,7 @@ export const PostsPage = () => {
 
   const handlePublish = async (id: string) => {
     try {
-      await updatePostStatus.mutateAsync({ id, status: 'published' });
+      await updatePost.mutateAsync({ id, data: { status: 'published' } });
     } catch {
       // Error already handled by hook
     }
@@ -97,7 +93,7 @@ export const PostsPage = () => {
 
   const handleUnpublish = async (id: string) => {
     try {
-      await updatePostStatus.mutateAsync({ id, status: 'draft' });
+      await updatePost.mutateAsync({ id, data: { status: 'draft' } });
     } catch {
       // Error already handled by hook
     }
@@ -266,7 +262,7 @@ export const PostsPage = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handlePublish(post.id)}
-                                disabled={updatePostStatus.isPending}
+                                disabled={updatePost.isPending}
                               >
                                 Publish
                               </Button>
@@ -275,7 +271,7 @@ export const PostsPage = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleUnpublish(post.id)}
-                                disabled={updatePostStatus.isPending}
+                                disabled={updatePost.isPending}
                               >
                                 Unpublish
                               </Button>

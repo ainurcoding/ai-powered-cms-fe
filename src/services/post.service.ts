@@ -1,4 +1,4 @@
-import { api, publicApi } from './api';
+import { publicApi } from './api';
 import { API_ENDPOINTS } from '../constants/api';
 import type { Post, CreatePostData, BackendResponse } from '../types';
 
@@ -27,7 +27,9 @@ export const postService = {
   },
 
   async createPost(data: CreatePostData): Promise<Post> {
-    const response = await api.post<BackendResponse<Post>>(
+    // Uses publicApi because backend returns Access-Control-Allow-Origin: *
+    // Token is automatically added via publicApi interceptor
+    const response = await publicApi.post<BackendResponse<Post>>(
       API_ENDPOINTS.POSTS.CREATE,
       data
     );
@@ -35,7 +37,9 @@ export const postService = {
   },
 
   async updatePost(id: string, data: Partial<CreatePostData>): Promise<Post> {
-    const response = await api.put<BackendResponse<Post>>(
+    // Uses publicApi because backend returns Access-Control-Allow-Origin: *
+    // Token is automatically added via publicApi interceptor
+    const response = await publicApi.put<BackendResponse<Post>>(
       API_ENDPOINTS.POSTS.UPDATE(id),
       data
     );
@@ -43,21 +47,24 @@ export const postService = {
   },
 
   async deletePost(id: string): Promise<void> {
-    await api.delete(API_ENDPOINTS.POSTS.DELETE(id));
+    // Uses publicApi because backend returns Access-Control-Allow-Origin: *
+    // Token is automatically added via publicApi interceptor
+    await publicApi.delete(API_ENDPOINTS.POSTS.DELETE(id));
   },
 
   /**
    * Update post status (published, draft, or archived).
    * Requires authentication token (Bearer token from localStorage).
-   * Token is automatically added by api interceptor.
+   * Token is automatically added by publicApi interceptor.
+   * Uses publicApi because backend returns Access-Control-Allow-Origin: *
    */
   async updatePostStatus(
     id: string,
     status: 'published' | 'draft' | 'archived'
   ): Promise<Post> {
-    // Uses 'api' instance which has token interceptor
+    // Uses publicApi because backend returns Access-Control-Allow-Origin: *
     // Token is automatically added from localStorage.getItem('access_token')
-    const response = await api.put<BackendResponse<Post>>(
+    const response = await publicApi.put<BackendResponse<Post>>(
       API_ENDPOINTS.POSTS.STATUS(id),
       { status }
     );

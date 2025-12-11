@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { GoogleCallbackPage } from './pages/GoogleCallbackPage';
 import { PostsPage } from './pages/PostsPage';
+import { PostEditorPage } from './pages/PostEditorPage';
 
 function App() {
   return (
@@ -24,6 +25,8 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/posts" element={<PostsPage />} />
+            <Route path="/posts/new" element={<PostEditorPage />} />
+            <Route path="/posts/:id/edit" element={<PostEditorPage />} />
           </Route>
 
           {/* 404 */}

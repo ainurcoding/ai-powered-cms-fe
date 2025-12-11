@@ -61,6 +61,7 @@ export interface CreatePostData {
   status?: 'draft' | 'published';
   meta_title?: string;
   meta_description?: string;
+  meta_keywords?: string;
   category_ids?: string[];
   tag_ids?: string[];
 }

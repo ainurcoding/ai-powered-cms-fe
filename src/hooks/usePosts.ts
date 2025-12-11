@@ -51,7 +51,24 @@ export const useUpdatePost = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['post', variables.id] });
-      toast.success('Post berhasil diupdate!');
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+
+      // Show specific message if only status is being updated
+      if (
+        variables.data &&
+        Object.keys(variables.data).length === 1 &&
+        'status' in variables.data
+      ) {
+        const statusMessage =
+          variables.data.status === 'published'
+            ? 'Post berhasil dipublish!'
+            : variables.data.status === 'draft'
+              ? 'Post berhasil diubah ke draft!'
+              : 'Post berhasil diupdate!';
+        toast.success(statusMessage);
+      } else {
+        toast.success('Post berhasil diupdate!');
+      }
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { detail?: string } } };
