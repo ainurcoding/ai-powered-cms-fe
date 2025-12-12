@@ -57,13 +57,13 @@ export interface CreatePostData {
   title: string;
   content: string;
   excerpt?: string;
-  featured_image?: string;
+  featuredImage?: string;
   status?: 'draft' | 'published';
-  meta_title?: string;
-  meta_description?: string;
-  meta_keywords?: string;
-  category_ids?: string[];
-  tag_ids?: string[];
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  categoryId?: string;
+  tagIds?: string[];
 }
 
 // Category Types
@@ -110,14 +110,31 @@ export interface Media {
 
 // AI Types
 export interface AIGenerateContentRequest {
-  prompt: string;
-  max_length?: number;
-  temperature?: number;
+  topic: string;
+  keywords?: string[];
+  contentType?: 'tutorial' | 'blog' | 'article' | 'news' | 'review';
+  tone?: 'professional' | 'friendly' | 'casual' | 'technical' | 'creative';
+  length?: 'short' | 'medium' | 'long';
+  language?: 'id' | 'en';
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
 }
 
 export interface AIGenerateContentResponse {
+  title?: string;
   content: string;
-  tokens_used: number;
+  excerpt?: string;
+  metaDescription?: string;
+  metaTitle?: string;
+  metaKeywords?: string;
+  suggestedTags?: string[];
+  suggestedCategory?: string;
+  seoScore?: number;
+  estimatedReadTime?: number;
+  tokens_used?: number;
+  provider?: string;
+  model?: string;
 }
 
 export interface AISuggestTagsRequest {
@@ -127,6 +144,14 @@ export interface AISuggestTagsRequest {
 
 export interface AISuggestTagsResponse {
   tags: string[];
+}
+
+export interface SEOOptimizationResponse {
+  optimizedTitle: string;
+  metaDescription: string;
+  suggestedKeywords: string[];
+  seoScore: number;
+  improvements?: string[];
 }
 
 // API Response Types

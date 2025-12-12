@@ -22,10 +22,18 @@ import {
 import { usePost, useCreatePost, useUpdatePost } from '../hooks/usePosts';
 import { useCategories } from '../hooks/useCategories';
 import { useTags } from '../hooks/useTags';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import { KeywordInput } from '../components/ai/KeywordInput';
+import { aiService } from '../services/ai.service';
 import toast from 'react-hot-toast';
-import type { CreatePostData } from '../types';
+import type { CreatePostData, SEOOptimizationResponse } from '../types';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/Dialog';
 
 export const PostEditorPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +55,27 @@ export const PostEditorPage = () => {
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
   const [metaKeywords, setMetaKeywords] = useState('');
+
+  // AI Generation states
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiKeywords, setAiKeywords] = useState<string[]>([]);
+  const [aiContentType, setAiContentType] = useState<
+    'tutorial' | 'blog' | 'article' | 'news' | 'review'
+  >('blog');
+  const [aiTone, setAiTone] = useState<
+    'professional' | 'friendly' | 'casual' | 'technical' | 'creative'
+  >('friendly');
+  const [aiLength, setAiLength] = useState<'short' | 'medium' | 'long'>(
+    'medium'
+  );
+  const [aiLanguage, setAiLanguage] = useState<'id' | 'en'>('id');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isOptimizingSEO, setIsOptimizingSEO] = useState(false);
+  const [seoScore, setSeoScore] = useState<number | null>(null);
+  const [generatedTitle, setGeneratedTitle] = useState<string>('');
+  const [seoOptimizationResult, setSeoOptimizationResult] =
+    useState<SEOOptimizationResponse | null>(null);
+  const [isSeoDialogOpen, setIsSeoDialogOpen] = useState(false);
 
   // Load post data when editing
   useEffect(() => {
@@ -81,11 +110,12 @@ export const PostEditorPage = () => {
       content: content.trim(),
       excerpt: excerpt.trim() || undefined,
       status,
-      meta_title: metaTitle.trim() || undefined,
-      meta_description: metaDescription.trim() || undefined,
-      meta_keywords: metaKeywords.trim() || undefined,
-      category_ids: categoryId ? [categoryId] : undefined,
-      tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+      metaTitle: metaTitle.trim() || undefined,
+      metaDescription: metaDescription.trim() || undefined,
+      metaKeywords: metaKeywords.trim() || undefined,
+      categoryId:
+        categoryId && categoryId.trim() !== '' ? categoryId : undefined,
+      tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
     };
 
     try {
@@ -108,6 +138,186 @@ export const PostEditorPage = () => {
     );
   };
 
+  const handleGenerateContent = async () => {
+    if (!aiTopic.trim()) {
+      toast.error('Topic is required');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await aiService.generateContent({
+        topic: aiTopic.trim(),
+        keywords: aiKeywords.length > 0 ? aiKeywords : undefined,
+        contentType: aiContentType,
+        tone: aiTone,
+        length: aiLength,
+        language: aiLanguage,
+        metaTitle: metaTitle.trim() || undefined,
+        metaDescription: metaDescription.trim() || undefined,
+        metaKeywords: metaKeywords.trim() || undefined,
+      });
+
+      // Auto-fill title, content, excerpt, dan meta fields
+      if (response.title) {
+        setTitle(response.title);
+        setGeneratedTitle(response.title); // Simpan untuk optimize SEO
+      }
+      if (response.content) {
+        setContent(response.content);
+      }
+      if (response.excerpt) {
+        setExcerpt(response.excerpt);
+      }
+      if (response.metaDescription) {
+        setMetaDescription(response.metaDescription);
+      }
+      if (response.metaTitle) {
+        setMetaTitle(response.metaTitle);
+      }
+      if (response.metaKeywords) {
+        setMetaKeywords(response.metaKeywords);
+      }
+      if (response.seoScore !== undefined) {
+        setSeoScore(response.seoScore);
+      }
+
+      // Auto-select category jika ada suggestedCategory
+      if (response.suggestedCategory && categories) {
+        const matchedCategory = categories.find(
+          (cat) =>
+            cat.name.toLowerCase() === response.suggestedCategory?.toLowerCase()
+        );
+        if (matchedCategory) {
+          setCategoryId(matchedCategory.id);
+        }
+      }
+
+      // Auto-select tags jika ada suggestedTags
+      if (response.suggestedTags && tags) {
+        const matchedTagIds = tags
+          .filter((tag) =>
+            response.suggestedTags?.some(
+              (suggestedTag) =>
+                tag.name.toLowerCase() === suggestedTag.toLowerCase()
+            )
+          )
+          .map((tag) => tag.id);
+        if (matchedTagIds.length > 0) {
+          setSelectedTagIds(matchedTagIds);
+        }
+      }
+
+      toast.success('Content generated successfully!');
+    } catch (error) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Failed to generate content');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleOptimizeSEO = async () => {
+    if (!content.trim()) {
+      toast.error('Content is required to optimize SEO');
+      return;
+    }
+
+    setIsOptimizingSEO(true);
+    try {
+      // Gunakan title dari generate-content response, atau dari field title jika tidak ada
+      const titleToUse = generatedTitle || title;
+      // Gunakan keywords dari user input (aiKeywords)
+      const targetKeywords = aiKeywords.length > 0 ? aiKeywords : undefined;
+
+      const response = await aiService.optimizeSEO(
+        content,
+        titleToUse,
+        targetKeywords
+      );
+
+      // Simpan response untuk ditampilkan di dialog
+      setSeoOptimizationResult(response);
+      setIsSeoDialogOpen(true);
+    } catch (error) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Failed to optimize SEO');
+    } finally {
+      setIsOptimizingSEO(false);
+    }
+  };
+
+  const handleApproveSEOChanges = () => {
+    if (!seoOptimizationResult) return;
+
+    // Update title dengan optimizedTitle
+    if (seoOptimizationResult.optimizedTitle) {
+      setTitle(seoOptimizationResult.optimizedTitle);
+    }
+
+    // Update excerpt dengan metaDescription (atau bisa disesuaikan)
+    if (seoOptimizationResult.metaDescription) {
+      setExcerpt(seoOptimizationResult.metaDescription.substring(0, 200)); // Limit excerpt length
+      setMetaDescription(seoOptimizationResult.metaDescription);
+    }
+
+    // Update meta title
+    if (seoOptimizationResult.optimizedTitle) {
+      setMetaTitle(seoOptimizationResult.optimizedTitle);
+    }
+
+    // Update meta keywords
+    if (
+      seoOptimizationResult.suggestedKeywords &&
+      seoOptimizationResult.suggestedKeywords.length > 0
+    ) {
+      setMetaKeywords(seoOptimizationResult.suggestedKeywords.join(', '));
+    }
+
+    // Update SEO score
+    if (seoOptimizationResult.seoScore !== undefined) {
+      setSeoScore(seoOptimizationResult.seoScore);
+    }
+
+    setIsSeoDialogOpen(false);
+    setSeoOptimizationResult(null);
+    toast.success('SEO changes applied successfully!');
+  };
+
+  const handleRejectSEOChanges = () => {
+    setIsSeoDialogOpen(false);
+    setSeoOptimizationResult(null);
+    toast('SEO changes rejected. Using previous values.', {
+      icon: 'ℹ️',
+    });
+  };
+
+  // Helper function untuk mendapatkan warna SEO score
+  const getSeoScoreColor = (score: number | null) => {
+    if (score === null) return 'text-muted-foreground';
+    if (score >= 80) return 'text-green-500';
+    if (score >= 60) return 'text-yellow-500';
+    if (score >= 40) return 'text-orange-500';
+    return 'text-red-500';
+  };
+
+  const getSeoScoreBgColor = (score: number | null) => {
+    if (score === null) return 'bg-muted';
+    if (score >= 80) return 'bg-green-500/10';
+    if (score >= 60) return 'bg-yellow-500/10';
+    if (score >= 40) return 'bg-orange-500/10';
+    return 'bg-red-500/10';
+  };
+
+  const getSeoScoreLabel = (score: number | null) => {
+    if (score === null) return 'N/A';
+    if (score >= 80) return 'Excellent';
+    if (score >= 60) return 'Good';
+    if (score >= 40) return 'Fair';
+    return 'Poor';
+  };
+
+  // Show loading only in edit mode when loading post data
   if (isEditMode && isLoadingPost) {
     return (
       <Layout>
@@ -165,24 +375,17 @@ export const PostEditorPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="min-h-[400px]">
-                    <ReactQuill
-                      theme="snow"
-                      value={content}
-                      onChange={setContent}
-                      placeholder="Write your content here..."
-                      modules={{
-                        toolbar: [
-                          [{ header: [1, 2, 3, false] }],
-                          ['bold', 'italic', 'underline', 'strike'],
-                          [{ list: 'ordered' }, { list: 'bullet' }],
-                          [{ indent: '-1' }, { indent: '+1' }],
-                          ['link', 'image'],
-                          ['clean'],
-                        ],
-                      }}
-                    />
-                  </div>
+                  <Textarea
+                    placeholder="Write your content here..."
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    rows={20}
+                    className="min-h-[400px] font-mono text-sm"
+                  />
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    💡 Tip: Gunakan AI Content Generator di sidebar untuk
+                    generate content otomatis
+                  </p>
                 </CardContent>
               </Card>
 
@@ -207,6 +410,133 @@ export const PostEditorPage = () => {
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {/* AI Content Generation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>🤖 AI Content Generator</CardTitle>
+                  <CardDescription>
+                    Generate content dengan AI berdasarkan topic dan keywords
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="ai-topic">Topic</Label>
+                    <Input
+                      id="ai-topic"
+                      placeholder="e.g., Apa yang perlu dipelajari sebelum menikah"
+                      value={aiTopic}
+                      onChange={(e) => setAiTopic(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="ai-keywords">Keywords</Label>
+                    <KeywordInput
+                      keywords={aiKeywords}
+                      onChange={setAiKeywords}
+                      placeholder="Type keyword and press Enter..."
+                      className="mt-2"
+                      maxKeywords={5}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="ai-content-type">Content Type</Label>
+                    <Select
+                      value={aiContentType}
+                      onValueChange={(
+                        value:
+                          | 'tutorial'
+                          | 'blog'
+                          | 'article'
+                          | 'news'
+                          | 'review'
+                      ) => setAiContentType(value)}
+                    >
+                      <SelectTrigger id="ai-content-type" className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="blog">Blog</SelectItem>
+                        <SelectItem value="article">Article</SelectItem>
+                        <SelectItem value="tutorial">Tutorial</SelectItem>
+                        <SelectItem value="news">News</SelectItem>
+                        <SelectItem value="review">Review</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="ai-tone">Tone</Label>
+                    <Select
+                      value={aiTone}
+                      onValueChange={(
+                        value:
+                          | 'professional'
+                          | 'friendly'
+                          | 'casual'
+                          | 'technical'
+                          | 'creative'
+                      ) => setAiTone(value)}
+                    >
+                      <SelectTrigger id="ai-tone" className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="friendly">Friendly</SelectItem>
+                        <SelectItem value="professional">
+                          Professional
+                        </SelectItem>
+                        <SelectItem value="casual">Casual</SelectItem>
+                        <SelectItem value="technical">Technical</SelectItem>
+                        <SelectItem value="creative">Creative</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="ai-length">Length</Label>
+                    <Select
+                      value={aiLength}
+                      onValueChange={(value: 'short' | 'medium' | 'long') =>
+                        setAiLength(value)
+                      }
+                    >
+                      <SelectTrigger id="ai-length" className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="short">Short</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="long">Long</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="ai-language">Language</Label>
+                    <Select
+                      value={aiLanguage}
+                      onValueChange={(value: 'id' | 'en') =>
+                        setAiLanguage(value)
+                      }
+                    >
+                      <SelectTrigger id="ai-language" className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="id">Bahasa Indonesia</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleGenerateContent}
+                    disabled={isGenerating || !aiTopic.trim()}
+                    className="w-full"
+                  >
+                    {isGenerating ? 'Generating...' : 'Generate Content'}
+                  </Button>
+                </CardContent>
+              </Card>
+
               {/* Publish */}
               <Card>
                 <CardHeader>
@@ -259,12 +589,14 @@ export const PostEditorPage = () => {
                   <CardTitle>Category</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Select value={categoryId} onValueChange={setCategoryId}>
+                  <Select
+                    value={categoryId || undefined}
+                    onValueChange={setCategoryId}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Category</SelectItem>
                       {categories?.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
@@ -317,6 +649,50 @@ export const PostEditorPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* SEO Score Display */}
+                  {seoScore !== null && (
+                    <div
+                      className={`rounded-lg border p-4 ${getSeoScoreBgColor(
+                        seoScore
+                      )}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-muted-foreground text-sm font-medium">
+                            SEO Score
+                          </p>
+                          <p
+                            className={`text-2xl font-bold ${getSeoScoreColor(
+                              seoScore
+                            )}`}
+                          >
+                            {seoScore}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p
+                            className={`text-sm font-semibold ${getSeoScoreColor(
+                              seoScore
+                            )}`}
+                          >
+                            {getSeoScoreLabel(seoScore)}
+                          </p>
+                          <p className="text-muted-foreground text-xs">
+                            out of 100
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleOptimizeSEO}
+                    disabled={isOptimizingSEO || !content.trim()}
+                    className="w-full"
+                  >
+                    {isOptimizingSEO ? 'Optimizing...' : '🤖 Optimize SEO'}
+                  </Button>
                   <div>
                     <Label htmlFor="meta-title">Meta Title</Label>
                     <Input
@@ -354,6 +730,149 @@ export const PostEditorPage = () => {
           </div>
         </form>
       </div>
+
+      {/* SEO Optimization Dialog */}
+      <Dialog open={isSeoDialogOpen} onOpenChange={setIsSeoDialogOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review SEO Optimization</DialogTitle>
+            <DialogDescription>
+              Tinjau perubahan SEO yang disarankan. Anda dapat menyetujui atau
+              menolak perubahan ini.
+            </DialogDescription>
+          </DialogHeader>
+
+          {seoOptimizationResult && (
+            <div className="space-y-4">
+              {/* SEO Score */}
+              <div
+                className={`rounded-lg border p-4 ${getSeoScoreBgColor(
+                  seoOptimizationResult.seoScore
+                )}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-muted-foreground text-sm font-medium">
+                      SEO Score
+                    </p>
+                    <p
+                      className={`text-2xl font-bold ${getSeoScoreColor(
+                        seoOptimizationResult.seoScore
+                      )}`}
+                    >
+                      {seoOptimizationResult.seoScore}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p
+                      className={`text-sm font-semibold ${getSeoScoreColor(
+                        seoOptimizationResult.seoScore
+                      )}`}
+                    >
+                      {getSeoScoreLabel(seoOptimizationResult.seoScore)}
+                    </p>
+                    <p className="text-muted-foreground text-xs">out of 100</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Optimized Title */}
+              <div>
+                <Label className="text-sm font-semibold">Optimized Title</Label>
+                <div className="bg-muted/50 mt-2 rounded-md border p-3">
+                  <p className="text-sm">
+                    {seoOptimizationResult.optimizedTitle}
+                  </p>
+                </div>
+                {title !== seoOptimizationResult.optimizedTitle && (
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Current: {title || '(empty)'}
+                  </p>
+                )}
+              </div>
+
+              {/* Meta Description */}
+              <div>
+                <Label className="text-sm font-semibold">
+                  Meta Description
+                </Label>
+                <div className="bg-muted/50 mt-2 rounded-md border p-3">
+                  <p className="text-sm">
+                    {seoOptimizationResult.metaDescription}
+                  </p>
+                </div>
+                {metaDescription !== seoOptimizationResult.metaDescription && (
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Current: {metaDescription || '(empty)'}
+                  </p>
+                )}
+              </div>
+
+              {/* Suggested Keywords */}
+              {seoOptimizationResult.suggestedKeywords &&
+                seoOptimizationResult.suggestedKeywords.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-semibold">
+                      Suggested Keywords
+                    </Label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {seoOptimizationResult.suggestedKeywords.map(
+                        (keyword, index) => (
+                          <span
+                            key={index}
+                            className="bg-primary/10 text-primary rounded-md px-2 py-1 text-xs font-medium"
+                          >
+                            {keyword}
+                          </span>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+              {/* Improvements */}
+              {seoOptimizationResult.improvements &&
+                seoOptimizationResult.improvements.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-semibold">
+                      Suggested Improvements
+                    </Label>
+                    <ul className="mt-2 space-y-1">
+                      {seoOptimizationResult.improvements.map(
+                        (improvement, index) => (
+                          <li
+                            key={index}
+                            className="text-muted-foreground flex items-start text-sm"
+                          >
+                            <span className="mr-2">•</span>
+                            <span>{improvement}</span>
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </div>
+                )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleRejectSEOChanges}
+            >
+              Tidak, Gunakan yang Lama
+            </Button>
+            <Button
+              type="button"
+              variant="default"
+              onClick={handleApproveSEOChanges}
+            >
+              Ya, Terapkan Perubahan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
