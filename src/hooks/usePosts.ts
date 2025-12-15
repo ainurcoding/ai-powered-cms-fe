@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { postService } from '../services/post.service';
-import type { CreatePostData } from '../types';
+import type { CreatePostData, Post } from '../types';
 import toast from 'react-hot-toast';
 
 export const usePosts = (params?: {
@@ -82,11 +82,52 @@ export const useDeletePost = () => {
 
   return useMutation({
     mutationFn: (id: string) => postService.deletePost(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    onMutate: async (deletedId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['posts'] });
+
+      // Snapshot the previous value for all posts queries
+      const previousPostsQueries = queryClient.getQueriesData({
+        queryKey: ['posts'],
+      });
+
+      // Optimistically remove the post from all posts queries
+      previousPostsQueries.forEach(([queryKey, data]) => {
+        if (Array.isArray(data)) {
+          queryClient.setQueryData<Post[]>(queryKey, (old) => {
+            if (!old) return old;
+            return old.filter((post) => post.id !== deletedId);
+          });
+        }
+      });
+
+      return { previousPostsQueries };
+    },
+    onSuccess: async (_, deletedId) => {
+      // Remove the specific post from cache
+      queryClient.removeQueries({ queryKey: ['post', deletedId] });
+
+      // Invalidate and refetch all posts queries (with any params)
+      await queryClient.invalidateQueries({
+        queryKey: ['posts'],
+        exact: false,
+      });
+
+      // Refetch all active posts queries to ensure UI updates
+      await queryClient.refetchQueries({ queryKey: ['posts'], exact: false });
+
+      // Invalidate dashboard stats
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+
       toast.success('Post berhasil dihapus!');
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, _deletedId, context) => {
+      // Rollback on error
+      if (context?.previousPostsQueries) {
+        context.previousPostsQueries.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Gagal menghapus post');
     },
