@@ -21,7 +21,7 @@ import {
 } from '../components/ui/Select';
 import { usePost, useCreatePost, useUpdatePost } from '../hooks/usePosts';
 import { useCategories } from '../hooks/useCategories';
-import { useTags } from '../hooks/useTags';
+import { useTags, usePopularTags, useCreateTag } from '../hooks/useTags';
 import { KeywordInput } from '../components/ai/KeywordInput';
 import { aiService } from '../services/ai.service';
 import toast from 'react-hot-toast';
@@ -43,8 +43,10 @@ export const PostEditorPage = () => {
   const { data: post, isLoading: isLoadingPost } = usePost(id || '');
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
+  const { data: popularTags } = usePopularTags(5);
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
+  const createTag = useCreateTag();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -76,6 +78,7 @@ export const PostEditorPage = () => {
   const [seoOptimizationResult, setSeoOptimizationResult] =
     useState<SEOOptimizationResponse | null>(null);
   const [isSeoDialogOpen, setIsSeoDialogOpen] = useState(false);
+  const [suggestedTagNames, setSuggestedTagNames] = useState<string[]>([]);
 
   // Load post data when editing
   useEffect(() => {
@@ -138,6 +141,33 @@ export const PostEditorPage = () => {
     );
   };
 
+  const handleSuggestedTagClick = async (tagName: string) => {
+    // Cek apakah tag sudah ada di database
+    const matchedTag = tags?.find(
+      (tag) => tag.name.toLowerCase() === tagName.toLowerCase()
+    );
+
+    if (matchedTag) {
+      // Tag sudah ada, toggle seperti biasa
+      handleTagToggle(matchedTag.id);
+    } else {
+      // Tag belum ada, buat tag baru
+      try {
+        const newTag = await createTag.mutateAsync({ name: tagName });
+        // Setelah tag dibuat, tambahkan ke selectedTagIds
+        // Tags list akan otomatis di-refresh oleh useCreateTag hook
+        setSelectedTagIds((prev) => {
+          // Pastikan tidak duplicate
+          if (prev.includes(newTag.id)) return prev;
+          return [...prev, newTag.id];
+        });
+        toast.success(`Tag "${tagName}" berhasil dibuat dan ditambahkan!`);
+      } catch {
+        // Error sudah di-handle oleh hook
+      }
+    }
+  };
+
   const handleGenerateContent = async () => {
     if (!aiTopic.trim()) {
       toast.error('Topic is required');
@@ -193,22 +223,39 @@ export const PostEditorPage = () => {
         }
       }
 
-      // Auto-select tags jika ada suggestedTags
-      if (response.suggestedTags && tags) {
-        const matchedTagIds = tags
-          .filter((tag) =>
-            response.suggestedTags?.some(
-              (suggestedTag) =>
-                tag.name.toLowerCase() === suggestedTag.toLowerCase()
-            )
-          )
-          .map((tag) => tag.id);
-        if (matchedTagIds.length > 0) {
-          setSelectedTagIds(matchedTagIds);
-        }
+      // Simpan suggestedTags ke state (tidak auto-select, user pilih manual)
+      if (response.suggestedTags) {
+        setSuggestedTagNames(response.suggestedTags.slice(0, 5)); // Max 5 tags
       }
 
-      toast.success('Content generated successfully!');
+      // Auto-update/create post setelah generate content
+      const postData: CreatePostData = {
+        title: response.title || title.trim(),
+        content: response.content || content.trim(),
+        excerpt: response.excerpt || excerpt.trim() || undefined,
+        status: 'draft', // Always draft after generate
+        metaTitle: response.metaTitle || metaTitle.trim() || undefined,
+        metaDescription:
+          response.metaDescription || metaDescription.trim() || undefined,
+        metaKeywords: response.metaKeywords || metaKeywords.trim() || undefined,
+        categoryId:
+          categoryId && categoryId.trim() !== '' ? categoryId : undefined,
+        tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+      };
+
+      if (isEditMode && id) {
+        // Update existing post
+        await updatePost.mutateAsync({ id, data: postData });
+        toast.success('Content generated and post updated successfully!');
+      } else {
+        // Create new draft post
+        const createdPost = await createPost.mutateAsync(postData);
+        // Navigate to edit page of the newly created post
+        if (createdPost?.id) {
+          navigate(`/posts/${createdPost.id}/edit`);
+          toast.success('Content generated and draft created successfully!');
+        }
+      }
     } catch (error) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Failed to generate content');
@@ -612,31 +659,105 @@ export const PostEditorPage = () => {
                 <CardHeader>
                   <CardTitle>Tags</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="max-h-[300px] space-y-2 overflow-y-auto">
-                    {tags?.map((tag) => (
-                      <div key={tag.id} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id={`tag-${tag.id}`}
-                          checked={selectedTagIds.includes(tag.id)}
-                          onChange={() => handleTagToggle(tag.id)}
-                          className="h-4 w-4 rounded border-gray-300"
-                        />
-                        <label
-                          htmlFor={`tag-${tag.id}`}
-                          className="cursor-pointer text-sm font-medium"
-                        >
-                          {tag.name}
-                        </label>
-                      </div>
-                    ))}
-                    {!tags || tags.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">
-                        No tags available
-                      </p>
-                    ) : null}
+                <CardContent className="space-y-6">
+                  {/* Popular Tags */}
+                  <div>
+                    <Label className="mb-2 text-sm font-semibold">
+                      Popular Tags (5)
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {popularTags && popularTags.length > 0 ? (
+                        popularTags.map((tag) => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => handleTagToggle(tag.id)}
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-sm transition-colors ${
+                              selectedTagIds.includes(tag.id)
+                                ? 'bg-primary text-primary-foreground'
+                                : 'border-input bg-background hover:bg-accent hover:text-accent-foreground border'
+                            }`}
+                          >
+                            {tag.name}
+                            {selectedTagIds.includes(tag.id) && ' ✓'}
+                          </button>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-sm">
+                          No popular tags available
+                        </p>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Suggested Tags */}
+                  <div>
+                    <Label className="mb-2 text-sm font-semibold">
+                      Suggested Tags (5)
+                    </Label>
+                    {suggestedTagNames.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {suggestedTagNames.map((tagName, index) => {
+                          // Find matching tag from all tags
+                          const matchedTag = tags?.find(
+                            (tag) =>
+                              tag.name.toLowerCase() === tagName.toLowerCase()
+                          );
+                          const isSelected = matchedTag
+                            ? selectedTagIds.includes(matchedTag.id)
+                            : false;
+
+                          return (
+                            <button
+                              key={`suggested-${index}`}
+                              type="button"
+                              onClick={() => handleSuggestedTagClick(tagName)}
+                              disabled={createTag.isPending}
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-sm transition-colors ${
+                                isSelected
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'border-input bg-background hover:bg-accent hover:text-accent-foreground border'
+                              } ${createTag.isPending ? 'cursor-wait opacity-50' : ''}`}
+                            >
+                              {tagName}
+                              {isSelected && ' ✓'}
+                              {!matchedTag && !isSelected && ' +'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">
+                        Generate content to get suggested tags
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Selected Tags Display */}
+                  {selectedTagIds.length > 0 && (
+                    <div>
+                      <Label className="mb-2 text-sm font-semibold">
+                        Selected Tags ({selectedTagIds.length})
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTagIds.map((tagId) => {
+                          const tag = tags?.find((t) => t.id === tagId);
+                          if (!tag) return null;
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => handleTagToggle(tag.id)}
+                              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm transition-colors"
+                            >
+                              {tag.name}
+                              <span className="ml-1">×</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

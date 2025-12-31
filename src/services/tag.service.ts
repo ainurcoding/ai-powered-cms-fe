@@ -10,6 +10,20 @@ export const tagService = {
     return response.data.result;
   },
 
+  async getPopularTags(limit: number = 5): Promise<Tag[]> {
+    const response = await publicApi.get<BackendResponse<Tag[]>>(
+      API_ENDPOINTS.TAGS.LIST,
+      {
+        params: {
+          sortBy: 'post_count',
+          limit,
+          order: 'desc',
+        },
+      }
+    );
+    return response.data.result;
+  },
+
   async getTag(id: string): Promise<Tag> {
     const response = await publicApi.get<BackendResponse<Tag>>(
       API_ENDPOINTS.TAGS.DETAIL(id)

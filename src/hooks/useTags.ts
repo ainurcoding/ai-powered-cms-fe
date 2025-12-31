@@ -67,3 +67,10 @@ export const useDeleteTag = () => {
     },
   });
 };
+
+export const usePopularTags = (limit: number = 5) => {
+  return useQuery({
+    queryKey: ['tags', 'popular', limit],
+    queryFn: () => tagService.getPopularTags(limit),
+  });
+};
